@@ -1,67 +1,57 @@
-import 'dotenv/config';
 import express from 'express';
-import mongoose from 'mongoose';
 import pino from 'pino-http';
 import cors from 'cors';
+
 import { env } from './utils/env.js';
 import { getAllContacts, getContactById } from './services/contacts.js';
 
-export const initMongoConnection = async () => {
-  try {
-    const user = env('MONGODB_USER');
-    const pwd = env('MONGODB_PASSWORD');
-    const url = env('MONGODB_URL');
-    const db = env('MONGODB_DB');
-
-    await mongoose.connect(`mongodb+srv://${user}:${pwd}@${url}/${db}`);
-    console.log('Mongo connection successfully established!');
-  } catch (e) {
-    console.error('Error connecting to MongoDB:', e);
-    throw e;
-  }
-};
-
 export function setupServer() {
   const app = express();
-
-  app.use(pino());
+  app.use(
+    pino({
+      transport: {
+        target: 'pino-pretty',
+      },
+    }),
+  );
   app.use(cors());
 
-  // Routes
   app.get('/contacts', async (req, res) => {
     const contacts = await getAllContacts();
-    if (!contacts.length) {
-      return res.status(404).json({
+    if (contacts.length === 0) {
+      res.status(404).json({
         status: 404,
         message: 'Contacts not found',
-        error: 'Database is empty',
+        error: 'Looks like the database of contacts is empty',
       });
+      return;
     }
-    res.json({
+    res.status(200).json({
       status: 200,
       message: 'Successfully found contacts!',
       data: contacts,
     });
   });
 
-  app.get('/contacts/:contactId', async (req, res) => {
+  app.get('/contacts/:contactId', async (req, res, next) => {
     const { contactId } = req.params;
     const contact = await getContactById(contactId);
     if (!contact) {
-      return res.status(404).json({
+      res.status(404).json({
         status: 404,
         message: 'Contact not found',
-        error: `Contact with id ${contactId} not found`,
+        error: `The requested contact with id ${contactId} was not found`,
       });
+      return;
     }
-    res.json({
+    res.status(200).json({
       status: 200,
       message: `Successfully found contact with id ${contactId}!`,
       data: contact,
     });
   });
 
-  app.use((req, res) => {
+  app.use((req, res, next) => {
     res.status(404).json({
       status: 404,
       message: 'Not found',
@@ -78,14 +68,8 @@ export function setupServer() {
   });
 
   const PORT = Number(env('PORT', 3000));
+
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
 }
-
-async function bootstrap() {
-  await initMongoConnection();
-  setupServer();
-}
-
-bootstrap();
