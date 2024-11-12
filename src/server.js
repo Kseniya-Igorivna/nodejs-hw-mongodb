@@ -25,7 +25,7 @@ export function setupServer() {
     });
   });
 
-  app.use('/api', contactsRouter);
+  app.use(contactsRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
