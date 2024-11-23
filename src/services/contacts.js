@@ -15,13 +15,13 @@ export async function getContactById(contactId) {
   if (!mongoose.Types.ObjectId.isValid(contactId)) {
     throw createHttpError(400, `Invalid contact ID: ${contactId}`);
   }
-  try {
-    const contact = await ContactsCollection.findById(contactId);
-    if (!contact) throw createHttpError(404, `Contact with ID ${contactId} not found`);
-    return contact;
-  } catch (error) {
-    throw error;
+
+  const contact = await ContactsCollection.findById(contactId);
+  if (!contact) {
+    throw createHttpError(404, `Contact with ID ${contactId} not found`);
   }
+
+  return contact;
 }
 
 export async function createContact(payload) {
@@ -56,11 +56,11 @@ export async function deleteContact(contactId) {
   if (!mongoose.Types.ObjectId.isValid(contactId)) {
     throw createHttpError(400, `Invalid contact ID: ${contactId}`);
   }
-  try {
-    const contact = await ContactsCollection.findOneAndDelete({ _id: contactId });
-    if (!contact) throw createHttpError(404, `Contact with ID ${contactId} not found`);
-    return contact;
-  } catch (error) {
-    throw new Error(`Error deleting contact: ${error.message}`);
+
+  const contact = await ContactsCollection.findByIdAndDelete(contactId);
+  if (!contact) {
+    throw createHttpError(404, `Contact with ID ${contactId} not found`);
   }
+
+  return contact;
 }
