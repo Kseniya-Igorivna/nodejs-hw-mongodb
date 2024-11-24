@@ -1,4 +1,4 @@
-import createHttpError from 'http-errors';
+import createHttpError from "http-errors";
 
 export const errorHandler = (err, req, res, next) => {
   if (err instanceof createHttpError.HttpError) {
@@ -8,9 +8,10 @@ export const errorHandler = (err, req, res, next) => {
     });
   }
 
-  console.error('Unhandled error:', err);
+  console.error("Unhandled error:", err);
+
   res.status(500).json({
     status: 500,
-    message: 'Internal Server Error',
+    message: "Internal Server Error",
   });
 };
