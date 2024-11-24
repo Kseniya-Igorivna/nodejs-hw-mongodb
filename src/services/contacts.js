@@ -33,23 +33,22 @@ export async function createContact(payload) {
   }
 }
 
-export async function updateContact(contactId, payload, options = {}) {
+export async function updateContact(contactId, updatedData) {
   if (!mongoose.Types.ObjectId.isValid(contactId)) {
     throw createHttpError(400, `Invalid contact ID: ${contactId}`);
   }
-  try {
-    const contact = await ContactsCollection.findByIdAndUpdate(
-      contactId,
-      payload,
-      { new: true, upsert: options.upsert }
-    );
-    return {
-      contact,
-      isNew: Boolean(contact && options.upsert),
-    };
-  } catch (error) {
-    throw new Error(`Error updating contact: ${error.message}`);
+
+  const updatedContact = await ContactsCollection.findByIdAndUpdate(
+    contactId,
+    updatedData,
+    { new: true, runValidators: true }
+  );
+
+  if (!updatedContact) {
+    throw createHttpError(404, `Contact with ID ${contactId} not found`);
   }
+
+  return updatedContact;
 }
 
 export async function deleteContact(contactId) {
