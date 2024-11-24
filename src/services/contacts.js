@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import createHttpError from 'http-errors';
 import { ContactsCollection } from '../db/models/contacts.js';
 
-export async function getAllContacts() {
+export async function getContacts() {
   try {
     const contacts = await ContactsCollection.find({});
     return contacts;

@@ -1,17 +1,18 @@
-import createHttpError from "http-errors";
+import { HttpError } from 'http-errors';
 
 export const errorHandler = (err, req, res, next) => {
-  if (err instanceof createHttpError.HttpError) {
-    return res.status(err.status).json({
+  if (err instanceof HttpError) {
+    res.status(err.status).json({
       status: err.status,
-      message: err.message,
+      message: err.name,
+      error: err,
     });
+    return;
   }
-
-  console.error("Unhandled error:", err);
 
   res.status(500).json({
     status: 500,
-    message: "Internal Server Error",
+    message: 'Something went wrong',
+    error: err.message,
   });
 };
