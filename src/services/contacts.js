@@ -1,65 +1,68 @@
-import mongoose from 'mongoose';
-import createHttpError from 'http-errors';
 import { ContactsCollection } from '../db/models/contacts.js';
+import { calculatePaginationData } from '../utils/calculatePaginationData.js';
 
-export async function getContacts() {
-  try {
-    const contacts = await ContactsCollection.find({});
-    return contacts;
-  } catch (error) {
-    throw new Error(`Error fetching contacts: ${error.message}`);
+export async function getContacts({
+  page = 1,
+  perPage = 10,
+  sortBy = '_id',
+  sortOrder = 'asc',
+  filter = {},
+  userId,
+}) {
+  const skip = (page - 1) * perPage;
+  const query = ContactsCollection.find();
+  if (filter.contactType) {
+    query.where('contactType').equals(filter.contactType);
   }
+  if (typeof filter.isFavourite === 'boolean') {
+    query.where('isFavourite').equals(filter.isFavourite);
+  }
+
+  query.where('userId').equals(userId);
+
+  const [totalItems, data] = await Promise.all([
+    ContactsCollection.find().merge(query).countDocuments(),
+    ContactsCollection.find()
+      .merge(query)
+      .skip(skip)
+      .limit(perPage)
+      .sort({ [sortBy]: sortOrder })
+      .exec(),
+  ]);
+
+  const paginationData = calculatePaginationData(totalItems, page, perPage);
+  return {
+    data,
+    ...paginationData,
+  };
 }
 
-export async function getContactById(contactId) {
-  if (!mongoose.Types.ObjectId.isValid(contactId)) {
-    throw createHttpError(400, `Invalid contact ID: ${contactId}`);
-  }
-
-  const contact = await ContactsCollection.findById(contactId);
-  if (!contact) {
-    throw createHttpError(404, `Contact with ID ${contactId} not found`);
-  }
-
-  return contact;
+export async function getContactById({ _id, userId }) {
+  return await ContactsCollection.findOne({ _id, userId });
 }
 
 export async function createContact(payload) {
-  try {
-    const contact = await ContactsCollection.create(payload);
-    return contact;
-  } catch (error) {
-    throw new Error(`Error creating contact: ${error.message}`);
-  }
+  return await ContactsCollection.create(payload);
 }
 
-export async function updateContact(contactId, updatedData) {
-  if (!mongoose.Types.ObjectId.isValid(contactId)) {
-    throw createHttpError(400, `Invalid contact ID: ${contactId}`);
-  }
-
-  const updatedContact = await ContactsCollection.findByIdAndUpdate(
-    contactId,
-    updatedData,
-    { new: true, runValidators: true }
+export async function updateContact({ _id, userId }, payload, options = {}) {
+  const rawResult = await ContactsCollection.findOneAndUpdate(
+    { _id, userId },
+    payload,
+    {
+      includeResultMetadata: true,
+      ...options,
+    },
   );
 
-  if (!updatedContact) {
-    throw createHttpError(404, `Contact with ID ${contactId} not found`);
-  }
+  if (!rawResult || !rawResult.value) return null;
 
-  return updatedContact;
+  return {
+    data: rawResult.value,
+    isNew: Boolean(rawResult?.lastErrorObject?.upserted),
+  };
 }
 
-export async function deleteContact(contactId) {
-  if (!mongoose.Types.ObjectId.isValid(contactId)) {
-    throw createHttpError(400, `Invalid contact ID: ${contactId}`);
-  }
-
-  const contact = await ContactsCollection.findByIdAndDelete(contactId);
-  if (!contact) {
-    throw createHttpError(404, `Contact with ID ${contactId} not found`);
-  }
-
-  return contact;
+export async function deleteContact({ _id, userId }) {
+  return await ContactsCollection.findOneAndDelete({ _id, userId });
 }
