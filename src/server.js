@@ -1,10 +1,12 @@
 import express from 'express';
 import pino from 'pino-http';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import contactsRouter from './routers/contacts.js';
 import { env } from './utils/env.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { notFoundHandler } from './middlewares/notFoundHandler.js';
+import authRouter from './routers/auth.js';
 
 export function setupServer() {
   const app = express();
@@ -17,7 +19,8 @@ export function setupServer() {
     }),
   );
   app.use(cors());
-
+  app.use(cookieParser());
+  app.use('/auth', authRouter);
   app.get('/', (req, res) => {
     res.status(200).json({
       status: 200,
