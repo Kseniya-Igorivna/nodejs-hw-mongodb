@@ -3,7 +3,7 @@ import createHttpError from 'http-errors';
 import { SessionCollection } from '../db/models/session.js';
 import { UsersCollection } from '../db/models/user.js';
 
-export async function authenticate(req, res, next) {
+export const authenticate = async (req, res, next) => {
   const authHeader = req.get('Authorization');
 
   if (!authHeader) {
@@ -11,14 +11,15 @@ export async function authenticate(req, res, next) {
     return;
   }
 
-  const [bearer, accessToken] = authHeader.split(' ');
+  const bearer = authHeader.split(' ')[0];
+  const token = authHeader.split(' ')[1];
 
-  if (bearer !== 'Bearer' || !accessToken) {
+  if (bearer !== 'Bearer' || !token) {
     next(createHttpError(401, 'Auth header should be of type Bearer'));
     return;
   }
 
-  const session = await SessionCollection.findOne({ accessToken });
+  const session = await SessionCollection.findOne({ accessToken: token });
 
   if (!session) {
     next(createHttpError(401, 'Session not found'));
@@ -30,7 +31,6 @@ export async function authenticate(req, res, next) {
 
   if (isAccessTokenExpired) {
     next(createHttpError(401, 'Access token expired'));
-    return;
   }
 
   const user = await UsersCollection.findById(session.userId);
@@ -43,4 +43,4 @@ export async function authenticate(req, res, next) {
   req.user = user;
 
   next();
-}
+};
