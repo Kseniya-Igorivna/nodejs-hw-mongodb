@@ -1,25 +1,44 @@
 import createHttpError from 'http-errors';
 import { sortByList  } from '../db/models/contacts.js'
 import {
-  getContacts,
   getContactById,
-  createContact,
   deleteContact,
   updateContact,
 } from '../services/contacts.js';
 import { parsePaginationParams, parseSortParams,parseContactFilterParams } from '../utils/parseContactParams.js';
-
+import { ContactsCollection as Contact } from '../models/contact.js';
 
 export const getContactsController = async (req, res, next) => {
-  const { page, perPage } = parsePaginationParams(req.query);
-  const { sortBy, sortOrder } = parseSortParams(req.query, sortByList);
-  const filter = parseContactFilterParams(req.query);
-  const data = await getContacts({ page, perPage, sortBy, sortOrder, filter });
-  res.status(200).json({
-    status: 200,
-    message: 'Successfully found contacts!',
-    data,
-  });
+  try {
+    const { _id: userId } = req.user;
+
+    const { page, perPage } = parsePaginationParams(req.query);
+    const { sortBy, sortOrder } = parseSortParams(req.query, sortByList);
+    const filter = parseContactFilterParams(req.query);
+
+    const searchCriteria = { ...filter, userId };
+
+    const contacts = await Contact.find(searchCriteria)
+      .sort({ [sortBy]: sortOrder })
+      .skip((page - 1) * perPage)
+      .limit(perPage);
+
+    const totalContacts = await Contact.countDocuments(searchCriteria);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Successfully found contacts!',
+      data: {
+        contacts,
+        total: totalContacts,
+        page,
+        perPage,
+        totalPages: Math.ceil(totalContacts / perPage),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const getContactByIdController = async (req, res, next) => {
@@ -36,13 +55,22 @@ export const getContactByIdController = async (req, res, next) => {
   });
 };
 
-export const createContactController = async (req, res) => {
-  const contact = await createContact(req.body);
-  res.status(201).json({
-    status: 201,
-    message: 'Successfully created contact!',
-    data: contact,
-  });
+export const createContactController = async (req, res, next) => {
+  try {
+    const { _id: userId } = req.user; 
+    const newContact = await Contact.create({
+      ...req.body,
+      userId,
+    });
+
+    res.status(201).json({
+      status: 201,
+      message: 'Successfully created contact!',
+      data: newContact,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const patchContactController = async (req, res, next) => {
