@@ -6,7 +6,7 @@ import {
   updateContact,
 } from '../services/contacts.js';
 import { parsePaginationParams, parseSortParams,parseContactFilterParams } from '../utils/parseContactParams.js';
-import { ContactsCollection as Contact } from '../models/contact.js';
+import { ContactsCollection as Contact } from '../db/models/contacts.js';
 
 export const getContactsController = async (req, res, next) => {
   try {
