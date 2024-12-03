@@ -37,7 +37,7 @@ export const authenticate = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    console.error('Authentication error:', error);
-    return next(createHttpError(401, error.message || 'Invalid token or authorization failed'));
+    console.error('JWT Verification Error:', error.message);
+    return next(createHttpError(401, 'Invalid token or authorization failed'));
   }
 };
